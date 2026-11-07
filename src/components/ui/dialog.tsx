@@ -200,7 +200,7 @@ export function DialogClose({
       {...props}
       onClick={handleClick}
       className={cn(
-        "absolute top-4 right-4 inline-flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500",
+        "absolute top-4 right-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500",
         className,
       )}
       aria-label={props["aria-label"] ?? "Cerrar"}

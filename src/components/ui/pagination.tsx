@@ -35,6 +35,8 @@ export interface PaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   className?: string;
+  /** Mantiene visibles los controles aunque no haya más de una página. */
+  alwaysShow?: boolean;
 }
 
 export function Pagination({
@@ -42,15 +44,17 @@ export function Pagination({
   totalPages,
   onPageChange,
   className,
+  alwaysShow = false,
 }: PaginationProps) {
-  if (totalPages <= 1) {
+  if (totalPages <= 1 && !alwaysShow) {
     return null;
   }
 
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-  const items = getPageItems(safePage, totalPages);
+  const safeTotalPages = Math.max(totalPages, 1);
+  const safePage = Math.min(Math.max(page, 1), safeTotalPages);
+  const items = getPageItems(safePage, safeTotalPages);
   const baseButton =
-    "inline-flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-40";
+    "inline-flex size-9 cursor-pointer items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <nav
@@ -89,7 +93,7 @@ export function Pagination({
             className={cn(
               baseButton,
               item === safePage
-                ? "bg-brand-600 text-white"
+                ? "font-semibold text-slate-900"
                 : "text-slate-600 hover:bg-slate-100",
             )}
           >
@@ -109,7 +113,7 @@ export function Pagination({
       <button
         type="button"
         onClick={() => onPageChange(safePage + 1)}
-        disabled={safePage === totalPages}
+        disabled={safePage === safeTotalPages}
         className={cn(baseButton, "text-slate-600 hover:bg-slate-100")}
         aria-label="Página siguiente"
       >

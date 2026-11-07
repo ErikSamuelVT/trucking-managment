@@ -12,6 +12,10 @@ const variantStyles = {
     "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-slate-500 disabled:text-slate-400",
   ghost:
     "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-slate-500 disabled:text-slate-400",
+  edit:
+    "text-sky-600 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-sky-500",
+  delete:
+    "text-red-600 hover:bg-red-50 hover:text-red-700 focus-visible:outline-red-500",
   danger:
     "bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:outline-red-600 disabled:bg-red-300",
 } as const;
@@ -21,6 +25,7 @@ const sizeStyles = {
   md: "h-10 gap-2 px-4 text-sm",
   lg: "h-11 gap-2 px-5 text-base",
   icon: "size-10 p-0",
+  iconSm: "size-8 p-0",
 } as const;
 
 export type ButtonVariant = keyof typeof variantStyles;
@@ -53,7 +58,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed",
+          "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed",
           variantStyles[variant],
           sizeStyles[size],
           className,

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import {
-  Badge,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
+  Skeleton,
 } from "@/components/ui";
+import { requireSession } from "@/modules/auth/lib/session";
+import { OperadoresClient } from "@/modules/operadores/components/operadores-client";
+import { listarOperadores } from "@/modules/operadores/services/operador.service";
 
 export const metadata: Metadata = {
   title: "Operadores",
@@ -15,26 +17,39 @@ export const metadata: Metadata = {
 
 export default function OperadoresPage() {
   return (
+    <Suspense fallback={<OperadoresSkeleton />}>
+      <OperadoresContent />
+    </Suspense>
+  );
+}
+
+async function OperadoresContent() {
+  await requireSession();
+
+  const operadores = await listarOperadores();
+
+  return <OperadoresClient initialData={operadores} />;
+}
+
+function OperadoresSkeleton() {
+  return (
     <Card>
       <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1.5">
-            <CardTitle>Operadores</CardTitle>
-            <CardDescription>
-              El catálogo de operadores se incorpora en la Fase 2.
-            </CardDescription>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-72" />
           </div>
-          <Badge variant="brand">Fase 1</Badge>
+          <Skeleton className="h-10 w-36" />
         </div>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-slate-700">
-          Sesión protegida correctamente. Esta ruta ya exige la cookie{" "}
-          <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-            tc_session
-          </code>{" "}
-          y será reemplazada por el CRUD real en la siguiente fase.
-        </p>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-56 w-full" />
       </CardContent>
     </Card>
   );

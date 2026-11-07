@@ -24,11 +24,11 @@
 | Sesión | JWT propio firmado con `SUPABASE_JWT_SECRET`, guardado en cookie `httpOnly`; Supabase lo acepta como rol `authenticated` |
 | Autorización de datos | RLS con rol `authenticated`; `cuentas` es de acceso exclusivo del servidor |
 | Claves primarias | UUID (`gen_random_uuid()`) |
-| Borrado de catálogos | Lógico (`activo = false`); la bitácora permanece intacta |
+| Borrado de catálogos | Operadores: físico (`DELETE`). Unidades y destinos: lógico (`activo = false`). La bitácora conserva un snapshot del operador y no depende de su existencia |
 | Número de tiros | Obligatorio si el destino contiene la palabra "refrigerado" |
 | Nóminas | Cálculo al momento, sin persistencia |
 | Estadísticas | Snapshot único en base de datos, refresco perezoso al visitar |
-| KPIs de catálogos | Solo registros activos |
+| KPIs de catálogos | Unidades y destinos activos; operadores registrados (sin estatus) |
 | Roles | Sin roles ni privilegios (datos compartidos por todos los usuarios autenticados) |
 
 > **Nota:** la especificación menciona "6 secciones", pero enumera 7 módulos contando Autenticación. Este plan cubre los 7 módulos.
@@ -142,7 +142,7 @@ trucking-managment/
 └─ package.json
 ```
 
-**Navegación responsive:** sidebar fija en desktop y barra inferior en móvil. Las tablas se convierten en tarjetas apiladas en pantallas pequeñas, conservando las acciones de editar y eliminar.
+**Navegación responsive:** barra superior modular con pestañas de los módulos en desktop y desplazamiento horizontal en móvil. Las pestañas de módulos aún no implementados se muestran deshabilitadas con "Próximamente". Las tablas se convierten en tarjetas apiladas en pantallas pequeñas, conservando las acciones de editar y eliminar.
 
 ---
 
@@ -154,17 +154,18 @@ trucking-managment/
 | :--- | :--- | :--- |
 | `0001_extensions.sql` | `pgcrypto`, `unaccent` | — |
 | `0002_cuentas.sql` | tabla nativa `cuentas` (sin `auth.users`) | — |
-| `0003_operadores.sql` | catálogo con `activo` | — |
+| `0003_operadores.sql` | catálogo de operadores (la `0012` retira `activo`) | — |
 | `0004_unidades.sql` | catálogo con `activo` y único parcial por placas | — |
 | `0005_destinos.sql` | catálogo con `activo` y `requiere_tiros` generado | — |
-| `0006_bitacora_viajes.sql` | tres FKs a los catálogos | 0003–0005 |
+| `0006_bitacora_viajes.sql` | dos FKs a unidades/destinos y snapshot del operador | 0003–0005 |
 | `0007_estadisticas_snapshot.sql` | fila única con `payload jsonb` | 0006 (semántica) |
 | `0008_indexes.sql` | FKs, fecha e índices únicos parciales | 0003–0006 |
 | `0009_functions.sql` | normalización, validaciones, recálculo, nómina | 0006–0007 |
 | `0010_rls_policies.sql` | políticas de acceso | todas |
 | `0011_realtime.sql` | publicación de las 5 tablas operativas | todas |
+| `0012_operadores_delete_real.sql` | elimina `activo` de operadores y habilita el `DELETE` real | 0003 |
 
-Los catálogos (`operadores`, `unidades`, `destinos`) no dependen entre sí y pueden crearse en paralelo. `bitacora_viajes` es la única tabla del núcleo con tres llaves foráneas y debe crearse al final. `cuentas` es independiente de todo el resto del modelo.
+Los catálogos (`operadores`, `unidades`, `destinos`) no dependen entre sí y pueden crearse en paralelo. `bitacora_viajes` es la única tabla del núcleo con llaves foráneas a catálogos (unidades y destinos) y debe crearse al final. `cuentas` es independiente de todo el resto del modelo.
 
 ### 4.2 Modelo de datos
 
@@ -178,8 +179,8 @@ creado_en / actualizado_en timestamptz
 -- operadores
 id uuid PK
 nombre, apellido_paterno, apellido_materno text NOT NULL
-activo boolean NOT NULL DEFAULT true
 creado_en / actualizado_en
+-- Sin columna activo: el borrado es físico mediante DELETE.
 
 -- unidades
 id uuid PK
@@ -203,7 +204,7 @@ creado_en / actualizado_en
 -- bitacora_viajes
 id uuid PK
 fecha date NOT NULL
-operador_id uuid NOT NULL → operadores(id) ON DELETE RESTRICT
+operador_id text NOT NULL               -- snapshot "nombre apellido_paterno"; sin FK
 unidad_id   uuid NOT NULL → unidades(id)   ON DELETE RESTRICT
 destino_id  uuid NOT NULL → destinos(id)   ON DELETE RESTRICT
 numero_tiros integer NULL               -- > 0 cuando aplica
@@ -221,9 +222,9 @@ version bigint NOT NULL DEFAULT 0
 
 ```txt
 cuentas                  (tabla aislada, sin relaciones)
-operadores 1 ──< bitacora_viajes >── 1 unidades
-                         │
-                         └──────── 1 destinos
+operadores               (catálogo independiente: la bitácora guarda su snapshot)
+bitacora_viajes >── 1 unidades
+                └── 1 destinos
 estadisticas_snapshot    (agregado global, sin FK)
 ```
 
@@ -249,7 +250,8 @@ estadisticas_snapshot    (agregado global, sin FK)
   - si no los requiere → debe ser `NULL`.
 - Trigger compartido `set_actualizado_en()`.
 - Triggers de sentencia que marcan el snapshot como obsoleto ante cambios en bitácora o catálogos.
-- Aunque las FKs sean `RESTRICT`, la aplicación nunca ejecuta `DELETE` físico: solo `UPDATE activo = false`.
+- **Borrado de operadores:** la aplicación ejecuta `DELETE` físico. La bitácora no tiene FK hacia `operadores`; guarda un snapshot de texto (`operador_id = "nombre apellido_paterno"`), por lo que los viajes históricos permanecen intactos.
+- Unidades y destinos conservan su borrado lógico (`UPDATE activo = false`).
 
 ### 4.6 RLS
 
@@ -335,7 +337,7 @@ estadisticas_snapshot    (agregado global, sin FK)
    - limpia el canal con `removeChannel` al desmontar.
 4. **Un canal por página**, no uno por fila ni por componente.
 5. **Resincronización:** al pasar a `SUBSCRIBED` (incluida la reconexión tras perder red) se hace una recarga silenciosa para recuperar eventos perdidos. En `CHANNEL_ERROR`/`TIMEOUT` se reintenta con backoff.
-6. **Borrado lógico:** llega como `UPDATE activo = false`; la fila se retira del listado activo y la bitácora no se modifica.
+6. **Borrado real de operadores:** llega como `DELETE` y la fila se retira del estado local. La bitácora no se modifica porque guarda su propio snapshot del operador. Unidades y destinos mantienen borrado lógico (`UPDATE activo = false`).
 7. **Evitar duplicados:** claves por `id`; en altas optimistas se usa un id temporal y se reconcilia con el id real que llega por Realtime.
 8. **Nóminas:** escucha `bitacora_viajes` solo si el usuario tiene un rango activo y recalcula con *debounce* local (aprox. 500 ms).
 9. **Estadísticas:** escucha `estadisticas_snapshot`; al recibir un nuevo snapshot reemplaza el payload y muestra los KPIs actualizados.
@@ -371,7 +373,7 @@ Total de viajes en el periodo: 3
 - Días en orden cronológico.
 - Varios viajes del mismo operador al mismo destino el mismo día: `(n)`.
 - Si el destino requiere tiros: se anexa `(N tiros)` al detalle del día.
-- Se incluyen operadores inactivos si tuvieron viajes en el periodo.
+- Se incluyen los viajes históricos cuyo operador ya no exista en el catálogo, usando el snapshot guardado en la bitácora.
 - Estado inicial del `textarea`: `"No se ha seleccionado un rango de fechas"`.
 - Botón de copiado con confirmación visual y *fallback* para navegadores sin Clipboard API.
 
@@ -390,7 +392,7 @@ Total de viajes en el periodo: 3
 - Al abrir la sección: se muestra el snapshot actual y, si está obsoleto, se ejecuta `fn_recalcular_estadisticas()` y se refresca la vista.
 - Botón "Actualizar" para forzar el recálculo.
 - **Contenido del payload:**
-  - KPIs: total de viajes, destinos activos, operadores activos y unidades activas.
+  - KPIs: total de viajes, destinos activos, operadores registrados y unidades activas.
   - Viajes por destino, por operador, por unidad y por número de tiros.
   - Los viajes sin tiros se agrupan como "sin tiros".
 - Porcentajes calculados en SQL con un decimal; paginación en cliente porque el snapshot es pequeño.
@@ -405,7 +407,7 @@ Total de viajes en el periodo: 3
 | :--- | :--- | :--- | :--- |
 | **0. Fundaciones** | Proyecto Next.js + TypeScript + Tailwind, componentes base propios, estructura de carpetas, Supabase local/cloud, tipos generados, CI | — | Compila; lint y typecheck limpios; conexión a Supabase verificada |
 | **1. Autenticación** | Tabla `cuentas`, hash bcrypt, registro, login, recuperación sin correo, JWT + cookie, middleware, RLS, `/api/sesion/token` | 0 | Escenarios 1–4 del Módulo 1 + recuperación con usuario inexistente |
-| **2. Catálogos** | Operadores, Unidades y Destinos: CRUD, validaciones, borrado lógico, Realtime, responsive | 1 | Gherkin de Módulos 2, 3 y 4 |
+| **2. Catálogos** | Operadores, Unidades y Destinos: CRUD, validaciones, borrado real de operadores, borrado lógico de unidades/destinos, Realtime, responsive | 1 | Gherkin de Módulos 2, 3 y 4 |
 | **3. Bitácora** | CRUD, selects dinámicos, campo condicional de tiros, integridad referencial, Realtime | 2 | Escenarios 1–5 del Módulo 5 |
 | **4. Nóminas** | RPC de resumen, plantilla de texto, copiado, validación de fechas | 3 | Escenarios 1–4 del Módulo 6 |
 | **5. Estadísticas** | Snapshot, recálculo, KPIs, cuatro tablas, porcentajes, paginación, Realtime | 3 | Escenarios 1–2 del Módulo 7 |
@@ -452,17 +454,17 @@ La arquitectura se mantiene dentro de los planes gratuitos con estas condiciones
 ### 11.1 Riesgos controlados
 
 - **Recuperación sin correo:** resuelta con usuario + nueva contraseña; se acepta el riesgo de suplantación y se mitiga con límites de intentos y auditoría.
-- **Pérdida de historial al eliminar catálogos:** evitada con borrado lógico.
+- **Pérdida de historial al eliminar operadores:** evitada porque la bitácora guarda un snapshot del operador y no depende de la fila del catálogo.
 - **Regla de "refrigerado" frágil:** centralizada en una columna generada de `destinos`, no en comparaciones dispersas de la UI.
 - **Consultas repetitivas en Estadísticas:** evitadas con snapshot y refresco perezoso.
 - **Contraseñas:** solo se guarda el hash bcrypt; la contraseña se normaliza a minúsculas por requisito de la spec (reduce entropía, se compensa exigiendo mayor longitud).
-- **Borrado físico accidental:** las FKs usan `RESTRICT` y la app no ejecuta `DELETE`.
+- **Borrado físico accidental de operadores:** el modal de confirmación es obligatorio; la bitácora conserva su snapshot y las FKs de unidades/destinos siguen en `RESTRICT`.
 - **Exposición de `cuentas`:** RLS sin políticas y acceso solo con `service_role` desde el servidor.
 
 ### 11.2 Supuestos menores
 
 - Se elimina por completo el campo `correo` y toda dependencia de Supabase Auth.
-- Se agrega `activo` a los tres catálogos.
+- Se agrega `activo` únicamente a unidades y destinos; operadores no tiene estatus y se elimina con `DELETE`.
 - La aplicación usa la zona horaria `America/Mexico_City` para mostrar fechas.
 - Los límites del Free Tier se mantienen durante la operación normal.
 - La palabra "refrigerado" se detecta sin distinguir mayúsculas ni acentos; un destino llamado "no refrigerado" también activaría la regla.

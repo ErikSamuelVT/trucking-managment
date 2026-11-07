@@ -135,7 +135,7 @@ function ToastCard({
       <button
         type="button"
         onClick={() => onDismiss(item.id)}
-        className="shrink-0 rounded p-1 opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        className="shrink-0 cursor-pointer rounded p-1 opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
         aria-label="Cerrar notificación"
       >
         <svg

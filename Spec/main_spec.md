@@ -37,6 +37,149 @@ Con un diseño moderno adaptado para versiones desktop y mobile.
 
 ---
 
+# Guía Global de Diseño y Estándares de IU (UI/UX)
+
+## 1. Objetivo y alcance
+
+Esta guía define los estándares visuales e interactivos obligatorios para **todos los módulos del sistema**: Autenticación, Operadores, Unidades, Destinos, Bitácora de viajes, Nóminas y Estadísticas.
+
+Sus reglas son transversales: cualquier componente nuevo o modificado debe cumplirlas, sin importar el módulo al que pertenezca. En caso de conflicto entre una decisión visual puntual y esta guía, prevalece la guía global.
+
+## 2. Comportamiento de botones
+
+- **UI-01 (Cursor interactivo):** Todo elemento accionable que se comporte como botón (`<button>`, enlaces de acción o componentes equivalentes) debe mostrar obligatoriamente `cursor-pointer` al pasar el cursor.
+- **UI-01.1 (Excepción de estado deshabilitado):** Cuando el botón esté deshabilitado o en estado de carga, debe mostrar `cursor-not-allowed` y no ejecutar acciones.
+- **UI-02 (Hover sutil):** Todo botón interactivo debe tener un efecto de hover perceptible pero sutil, acompañado de una transición suave (por ejemplo, `transition-colors`).
+- **UI-02.1 (Hover coherente con la variante):** El hover debe reforzar la función del botón: oscurecer o intensificar ligeramente su color de fondo, borde o texto, sin cambios bruscos ni animaciones excesivas.
+- **UI-03 (Foco visible):** Todos los botones deben conservar un indicador de foco visible (`focus-visible`) para navegación por teclado.
+- **UI-04 (Consistencia):** Las acciones equivalentes deben usar el mismo componente y la misma variante visual en toda la aplicación.
+
+## 3. Acciones de tabla basadas en íconos
+
+Los botones de acción de las tablas deben ser minimalistas, basados en íconos, con tooltip flotante y hover sutil. No se usan botones con texto ni fondos sólidos permanentes en la columna `Acciones`.
+
+| Acción | Ícono | Color base | Hover |
+| :--- | :--- | :--- | :--- |
+| **Editar** | Lápiz | Azul (`text-sky-600`) | Fondo azul tenue (`hover:bg-sky-50`) y texto `hover:text-sky-700` |
+| **Eliminar** | Bote de basura | Rojo (`text-red-600`) | Fondo rojo tenue (`hover:bg-red-50`) y texto `hover:text-red-700` |
+| **Acción principal** | Ícono + texto | Color de marca sólido | Tono de marca más oscuro |
+| **Acción neutra/secundaria** | Texto o ícono | Neutro suave o blanco | Fondo neutro ligeramente más oscuro |
+
+- **UI-05 (Semántica del color):** El azul se reserva para acciones constructivas o de edición; el rojo se reserva para eliminación o acciones destructivas. En la tabla, ambos se expresan con el color del ícono y un fondo tenue solo en hover.
+- **UI-06 (Contraste):** La combinación de fondo, borde y texto debe mantener contraste suficiente para ser legible, incluso en su estado de hover.
+- **UI-07 (Confirmación destructiva):** La eliminación siempre requiere confirmación en un modal. El botón que confirma la eliminación usa rojo sólido para reforzar la advertencia.
+- **UI-07.1 (Tooltips):** Los botones de acción basados en íconos deben mostrar un tooltip flotante con el nombre de la acción (`Editar` / `Eliminar`) al pasar el cursor o al recibir foco por teclado.
+
+## 4. Limpieza en modales de formulario
+
+- **UI-08 (Sin texto redundante al pie):** Los modales de formulario deben mantenerse limpios. No deben incluir textos de ayuda, descripciones redundantes ni párrafos explicativos al final del formulario.
+- **UI-09 (Información esencial):** La información necesaria debe comunicarse mediante etiquetas claras, marcadores de posición, campos obligatorios y mensajes de validación junto al campo correspondiente.
+- **UI-10 (Descripción del modal):** El encabezado del modal puede incluir una descripción breve únicamente cuando aporte contexto indispensable; no debe repetir el título ni explicar reglas ya visibles en el formulario.
+- **UI-11 (Excepción de confirmación):** Los modales de confirmación de acciones destructivas sí pueden incluir una advertencia breve sobre la irreversibilidad o el impacto de la acción.
+- **UI-11.1 (Encabezado de tarjeta):** El encabezado de una tarjeta de catálogo debe mostrar únicamente el título y, a la derecha, la acción principal. No se permiten subtítulos redundantes que repitan la función evidente de la tabla.
+
+## 5. Estándares complementarios
+
+- **UI-12 (Responsive):** Toda vista debe adaptarse a desktop y mobile. Las tablas de catálogos conservan su estructura en pantallas pequeñas y se envuelven en un contenedor con desplazamiento horizontal (`overflow-x-auto`), preservando la misma información, acciones y altura mínima.
+- **UI-13 (Accesibilidad):** Los botones con icono o acciones repetidas deben incluir `aria-label` descriptivo. Los modales deben declarar título accesible.
+- **UI-14 (Columnas de tabla):** Las tablas de catálogos deben presentar columnas separadas y explícitas por campo, con un número consecutivo de fila (`N°`) y una columna final de `Acciones`.
+- **UI-15 (Reutilización):** Las reglas visuales deben implementarse en los componentes compartidos de UI (`Button`, `Dialog`, toasts, paginación, etc.) para que los módulos las hereden automáticamente.
+- **UI-16 (Paginación minimalista):** Las tablas de catálogos muestran un máximo de **5 registros por página**; el resto se distribuye en la paginación. El número de la página activa debe mostrarse como texto plano, sin fondo sólido. La barra de paginación permanece visible también en el estado vacío. El conteo de registros se expresa de forma directa como `Mostrando X de Y operadores`, donde `X` es la cantidad de registros visibles en la página actual e `Y` el total de registros filtrados.
+- **UI-17 (Altura mínima de tabla):** El cuerpo de la tabla debe conservar una altura mínima calculada equivalente a 5 filas compactas, con el fin de evitar saltos visuales al cambiar de página o filtrar cuando hay menos registros.
+- **UI-18 (Estado vacío):** Cuando no haya registros o la búsqueda no devuelva resultados, la cabecera de la tabla debe permanecer visible. El cuerpo muestra un ícono centrado, el título `No se encontraron operadores` y un subtítulo contextual.
+- **UI-19 (Barra de navegación superior modular):** Las pestañas de los módulos (`Operadores`, `Unidades`, `Destinos`, `Bitácora`, `Nómina`, `Estadísticas`) se agrupan dentro de un contenedor general sutil, redondeado y con fondo gris claro (`bg-slate-100`), que delimita visualmente el grupo. La pestaña activa se muestra como un bloque blanco con texto e ícono en azul institucional y una sombra sutil. Las pestañas inactivas muestran su ícono y tipografía en gris obscuro (`text-slate-600`) sobre el fondo gris claro del contenedor, garantizando contraste. Las pestañas de módulos aún no disponibles se muestran deshabilitadas con la leyenda `Próximamente`.
+- **UI-20 (Encabezados limpios):** La barra de título de una sección muestra únicamente el nombre del módulo a la izquierda y la acción principal a la derecha. No se permiten subtítulos redundantes.
+- **UI-21 (Búsqueda a ancho completo):** El input de búsqueda debe ocupar el 100% del ancho disponible de la tarjeta o contenedor y usar un marcador de posición descriptivo de los campos consultados. No lleva etiqueta flotante visible: únicamente el input y su marcador de posición.
+- **UI-22 (Marca en la barra superior):** La barra superior muestra únicamente el nombre `TruckingControl`, con tipografía de mayor presencia visual (`text-xl`). No se muestra texto secundario, subtítulo ni leyenda debajo de la marca.
+- **UI-23 (Jerarquía del título de sección):** El título de la sección debe renderizarse como un encabezado propio (`h3`) con exactamente las clases tipográficas `text-2xl leading-none font-bold tracking-tight`, sin clases heredadas de componentes compartidos ni utilidades repetidas o conflictivas de tamaño o peso. Se conserva el color neutro oscuro del texto. Para la adaptabilidad, se añaden únicamente las utilidades de visibilidad responsive `hidden md:block`: oculto en móvil (`< md`) y visible desde `md`.
+- **UI-24 (Búsqueda sin etiqueta):** El campo de búsqueda de catálogos no muestra la etiqueta flotante `Buscar` encima del input; su función se comunica mediante el marcador de posición descriptivo.
+- **UI-25 (Distribución de la barra superior):** La barra superior se distribuye en tres zonas: la marca a la izquierda, el contenedor de módulos al centro y el botón de sesión a la derecha. Debe existir una separación suficiente entre la marca y el contenedor de módulos (`gap-4` en móvil y `gap-8` en escritorio), el contenedor de módulos se expande (`flex-1`) y centra sus pestañas en el espacio disponible entre ambos extremos, y el botón de sesión conserva un margen derecho (`md:mr-4`) para no quedar pegado al borde de la ventana.
+- **UI-26 (Navbar móvil):** En pantallas menores a `md` se oculta la barra horizontal de pestañas. La barra superior móvil muestra un botón de menú hamburguesa alineado a la izquierda y la marca `TruckingControl` centrada. A partir de `md` se conserva intacto el header de escritorio con marca a la izquierda, pestañas horizontales al centro y botón de sesión a la derecha.
+- **UI-27 (Menú hamburguesa a pantalla completa):** Al desplegarse, el menú móvil se presenta como un drawer fijo (`fixed inset-0`) que ocupa el 100% del ancho y alto de la pantalla, cubriendo todo el contenido inferior con una capa de navegación independiente. Incluye una barra superior propia con el botón de cierre (`X`) accesible y la marca `TruckingControl` centrada. El cuerpo muestra una lista vertical con todas las secciones (`Operadores`, `Unidades`, `Destinos`, `Bitácora`, `Nómina`, `Estadísticas`), conservando los mismos estilos de la sección activa (bloque blanco con texto e ícono en azul) e inactivas (texto e ícono en gris obscuro sobre fondo gris claro), con desplazamiento interno si el contenido excede la altura. Al fondo del drawer se muestra el botón `Cerrar sesión`, siempre visible. El menú se cierra al pulsar la `X` o al seleccionar una sección disponible, y el scroll del documento de fondo queda bloqueado mientras está abierto.
+- **UI-28 (Cuerpo móvil):** En pantallas menores a `md` el título de la sección se oculta y el botón de acción principal y el input de búsqueda se disponen en columna (`flex-col`), ocupando ambos el 100% del ancho del contenedor con un espaciado uniforme (`gap`).
+- **UI-29 (Cuerpo de escritorio):** A partir de `md` se conserva la estructura de escritorio: título de la sección a la izquierda, botón de acción principal a la derecha e input de búsqueda a ancho completo debajo.
+
+## 6. Criterios de Aceptación (BDD / Gherkin)
+
+### Escenario 1: Hover y cursor en botones interactivos
+
+- **Dado** que el usuario visualiza cualquier botón interactivo del sistema
+- **Cuando** coloca el cursor sobre él
+- **Entonces** el cursor cambia a mano (`cursor-pointer`)
+- **Y** el botón muestra un cambio de color sutil con transición suave
+- **Y** al deshabilitarse, el cursor cambia a `not-allowed`
+
+### Escenario 2: Botones de acción basados en íconos
+
+- **Dado** que el usuario visualiza la columna de acciones de una tabla
+- **Cuando** observa el botón "Editar"
+- **Entonces** este muestra únicamente un ícono de lápiz en color azul
+- **Y** al pasar el cursor muestra el tooltip "Editar" y un fondo azul tenue
+- **Y** el botón "Eliminar" muestra un ícono de bote de basura en color rojo
+- **Y** al pasar el cursor muestra el tooltip "Eliminar" y un fondo rojo tenue
+- **Y** ambos conservan `cursor-pointer` y un hover suave
+
+### Escenario 3: Modal de formulario limpio
+
+- **Dado** que el usuario abre un modal para crear o editar un registro
+- **Cuando** el formulario se muestra
+- **Entonces** no aparece texto de ayuda ni descripción redundante al pie del formulario
+- **Y** la información necesaria se comunica mediante etiquetas, marcadores y validaciones junto a cada campo
+
+### Escenario 4: Navegación superior modular
+
+- **Dado** que el usuario se encuentra en el módulo de Operadores
+- **Cuando** observa la barra superior
+- **Entonces** las pestañas de los módulos se agrupan en un contenedor general sutil con fondo gris claro
+- **Y** la pestaña "Operadores" se muestra activa como un bloque blanco con texto azul e ícono azul
+- **Y** las demás pestañas se muestran con ícono y texto en gris obscuro sobre el fondo gris claro del contenedor
+- **Y** las pestañas de módulos aún no disponibles aparecen deshabilitadas con la leyenda `Próximamente`
+- **Y** el encabezado de la sección muestra únicamente el título "Operadores" y el botón "Nuevo Operador" a la derecha
+
+### Escenario 5: Encabezado, búsqueda y conteo finales
+
+- **Dado** que el usuario se encuentra en el módulo de Operadores
+- **Cuando** observa la barra superior
+- **Entonces** la marca `TruckingControl` se muestra con mayor presencia visual y sin el texto "Administración de flotilla"
+- **Y** el título de la sección "Operadores" se renderiza con exactamente las clases `text-2xl leading-none font-bold tracking-tight`, sin clases conflictivas ni repetidas
+- **Y** el campo de búsqueda muestra únicamente el input a ancho completo con el marcador "Buscar por nombres, apellido paterno o materno...", sin la etiqueta "Buscar"
+- **Y** el pie de la tarjeta muestra el conteo en formato `Mostrando X de Y operadores`, sin rangos
+
+### Escenario 6: Distribución equilibrada de la barra superior
+
+- **Dado** que el usuario se encuentra en el módulo de Operadores en una pantalla de escritorio
+- **Cuando** observa la barra superior
+- **Entonces** la marca `TruckingControl` y el contenedor de módulos mantienen una separación visible sin encimarse
+- **Y** el contenedor de módulos se muestra centrado en el espacio disponible entre la marca y el botón de sesión
+- **Y** el botón "Cerrar sesión" conserva un margen derecho que lo separa del borde de la ventana
+
+### Escenario 7: Navbar responsive y menú hamburguesa
+
+- **Dado** que el usuario accede al sistema desde un dispositivo móvil (`< md`)
+- **Cuando** observa la barra superior
+- **Entonces** la barra horizontal de pestañas no se muestra
+- **Y** se muestra el botón de menú hamburguesa a la izquierda y la marca `TruckingControl` centrada
+- **Cuando** el usuario pulsa el botón hamburguesa
+- **Entonces** se despliega un drawer fijo a pantalla completa que cubre todo el contenido inferior
+- **Y** el drawer muestra una barra superior con el botón de cierre (`X`) accesible y la marca `TruckingControl` centrada
+- **Y** se muestra una lista vertical con las secciones `Operadores`, `Unidades`, `Destinos`, `Bitácora`, `Nómina` y `Estadísticas`
+- **Y** la sección activa conserva el estilo de bloque blanco con texto e ícono en azul
+- **Y** las secciones inactivas conservan el texto y el ícono en gris obscuro sobre el fondo gris claro
+- **Y** al fondo del drawer se muestra el botón `Cerrar sesión`
+- **Y** al pulsar la `X` el drawer se cierra y el contenido vuelve a ser visible
+- **Y** en pantallas de escritorio (`>= md`) el header mantiene su estructura intacta
+
+### Escenario 8: Cuerpo de la página en móvil
+
+- **Dado** que el usuario se encuentra en el módulo de Operadores desde un dispositivo móvil (`< md`)
+- **Cuando** observa el cuerpo de la página
+- **Entonces** el título "Operadores" no se muestra
+- **Y** el botón "Nuevo Operador" y el input de búsqueda se muestran en columna, cada uno al 100% del ancho con espaciado entre ellos
+- **Y** la tabla se muestra dentro de un contenedor con desplazamiento horizontal (`overflow-x-auto`), conservando su altura mínima y estructura
+- **Y** en pantallas de escritorio (`>= md`) se mantiene el título a la izquierda, el botón a la derecha y el input de búsqueda a ancho completo
+
+---
+
 # Módulo 1 - Autenticación
 
 ## 1. Descripción
@@ -129,14 +272,14 @@ Representa las cuentas registradas en la base de datos.
 
 ## 1. Descripción
 
-Permite la gestión (alta, consulta, edición y eliminación) de los operadores activos en la flotilla.
+Permite la gestión (alta, consulta, edición y eliminación) de los operadores de la flotilla. El borrado es físico y definitivo.
 
 ## 2. Requisitos Funcionales (RF)
 
 - **RF-2.1 (CRUD de Operadores):** El usuario debe poder registrar, listar, editar y eliminar operadores de la flotilla.
 - **RF-2.2 (Acciones de Registro):** Cada fila de la tabla debe contar con botones de acción para:
   - **Editar:** Carga los datos del operador en el formulario para su modificación y debe actualizar la tabla con el registro modificado.
-  - **Eliminar:** Muestra un modal de confirmación antes de borrar el registro y una vez eliminado debe actualizar la tabla con el registro eliminado.
+  - **Eliminar:** Muestra un modal de confirmación antes de borrar el registro. Al confirmar, ejecuta un `DELETE` real en Supabase, actualiza la tabla removiendo la fila y conserva intactos los viajes históricos de la bitácora.
 
 ## 3. Estructura del Formulario/Tabla (`operadores`)
 
@@ -169,6 +312,10 @@ Permite la gestión (alta, consulta, edición y eliminación) de los operadores 
   - Se deben eliminar automáticamente los espacios en blanco al inicio y al final de cada campo (`trim`) antes de procesar o guardar.
 - **RN-2.4 (Normalización en Base de Datos):**
   - Al hacer clic en el botón de registrar/guardar, toda la información ingresada debe convertirse y almacenarse **en minúsculas** en la base de datos de Supabase.
+- **RN-2.5 (Borrado físico):**
+  - No existe campo de estatus ni baja lógica para operadores.
+  - El botón "Eliminar" ejecuta un `DELETE` real en la tabla `operadores`, previa confirmación en un modal.
+  - Los viajes históricos permanecen intactos porque la bitácora guarda un snapshot del operador y no depende de la fila del catálogo.
 
 ## 6 Criterios de Aceptación (BDD / Gherkin)
 
@@ -206,8 +353,9 @@ Permite la gestión (alta, consulta, edición y eliminación) de los operadores 
 - **Cuando** hace clic en el ícono de "Eliminar" en una fila
 - **Entonces** el sistema despliega un modal pidiendo confirmación
 - **Y cuando** el usuario confirma la eliminación
-- **Entonces** el sistema elimina el registro de Supabase
+- **Entonces** el sistema ejecuta un `DELETE` real del registro en Supabase
 - **Y** actualiza la tabla removiendo la fila correspondiente
+- **Y** los viajes históricos de la bitácora permanecen intactos
 
 ---
 
@@ -415,7 +563,7 @@ Permite la gestión (alta, consulta, edición y eliminación) de los viajes real
 | :------------- | :------------------------ | :------------------------------- | :-------------------------------------------------------------- |
 | `id`           | Auto-incrementable / UUID | Automático                       | Identificador único del viaje                                   |
 | `fecha`        | Date                      | Obligatorio                      | Fecha en que se realizó el viaje                                |
-| `operador_id`  | Text                      | Obligatorio                      | Identificador del operador (primer nombre y primer apellido)    |
+| `operador_id`  | Text                      | Obligatorio                      | Snapshot histórico del operador (primer nombre y primer apellido); no depende de la tabla `operadores` |
 | `unidad_id`    | Text                      | Obligatorio                      | Identificador de la unidad (placas)                             |
 | `destino_id`   | Text                      | Obligatorio                      | Identificador del destino                                       |
 | `numero_tiros` | Numérico                  | Condicional / Oculto por defecto | Requerido solo si el destino es "Refrigerado" o "Refrigerado C" |
@@ -443,6 +591,9 @@ Permite la gestión (alta, consulta, edición y eliminación) de los viajes real
   - El campo `Número de tiros` debe iniciar oculto (`hidden`).
   - Debe mostrarse únicamente cuando la opción seleccionada en el campo Destino corresponda a `"Refrigerado"` o `"Refrigerado C"`.
   - Si se cambia el destino a uno distinto de estos dos, el campo debe volver a ocultarse y limpiar su valor.
+- **RN-5.4 (Independencia histórica del operador):**
+  - La bitácora guarda un snapshot del operador (`operador_id` de texto con primer nombre y primer apellido) y no mantiene una llave foránea hacia `operadores`.
+  - Si el operador se elimina del catálogo, sus viajes históricos permanecen consultables y se incluyen en nóminas y estadísticas.
 
 ## 6. Criterios de Aceptación (BDD / Gherkin)
 
