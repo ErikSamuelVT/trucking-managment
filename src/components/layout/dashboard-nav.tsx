@@ -152,7 +152,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Unidades",
     href: "/unidades",
     icon: IconoUnidades,
-    disponible: false,
+    disponible: true,
   },
   {
     label: "Destinos",

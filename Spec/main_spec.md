@@ -363,13 +363,13 @@ Permite la gestión (alta, consulta, edición y eliminación) de los operadores 
 
 ## 1. Descripción
 
-Permite la gestión (alta, consulta, edición y eliminación) de las unidades que se encuentran activas en la flotilla.
+Permite la gestión (alta, consulta, edición y eliminación) de las unidades registradas en la flotilla.
 
 ## 2. Requisitos Funcionales (RF)
 
 - **RF-3.1 (CRUD de Unidades):** El usuario debe poder registrar, listar, editar y eliminar unidades de la flotilla.
 - **RF-3.2 (Acciones de Registro):** Cada fila de la tabla debe contar con botones de acción para:
-  - **Editar:** Carga los datos del operador en el formulario para su modificación y debe actualizar la tabla con el registro modificado.
+  - **Editar:** Carga los datos de la unidad en el formulario para su modificación y debe actualizar la tabla con el registro modificado.
   - **Eliminar:** Muestra un modal de confirmación antes de borrar el registro y una vez eliminado debe actualizar la tabla con el registro eliminado.
 
 ## 3. Estructura del Formulario/Tabla (`unidades`)
@@ -412,7 +412,19 @@ Permite la gestión (alta, consulta, edición y eliminación) de las unidades qu
 - **RN-3.5 (Normalización en Base de Datos):**
   - Al hacer clic en el botón de registrar o guardar, toda la información ingresada debe convertirse y almacenarse **en minúsculas** en la base de datos de Supabase.
 
-## 6. Criterios de Aceptación (BDD / Gherkin)
+## 6. Interfaz y comportamiento responsive
+
+La sección Unidades hereda estrictamente la plantilla maestra definida en las reglas UI-19 a UI-29 y en el Módulo 2 (Operadores):
+
+- **Controles superiores:** el título `Unidades` se oculta en pantallas menores a `md`. El botón principal `Nueva Unidad` y el campo de búsqueda se apilan en columna al 100% del ancho con espaciado uniforme; desde `md` el título queda a la izquierda y el botón a la derecha.
+- **Búsqueda:** input de búsqueda sin etiqueta flotante, a ancho completo, con el marcador de posición `Buscar por placas, marca, modelo, no. motor o NIV...`.
+- **Tabla:** columnas `N°`, `Placas`, `Marca`, `Modelo`, `No. Motor`, `NIV` y `Acciones`. Se muestra dentro de un contenedor con desplazamiento horizontal (`overflow-x-auto`), alto mínimo estable de `220px` y un máximo de 5 registros por página. Los identificadores largos (`Placas`, `No. Motor` y `NIV`) se muestran completos, sin partirse ni truncarse, y la tabla se expande horizontalmente cuando el ancho no alcanza. La paginación inferior usa números limpios y el conteo `Mostrando X de Y`.
+- **Acciones de fila:** se conserva la plantilla de Operadores: íconos de editar (azul) y eliminar (rojo) con tooltip, hover tenue y `cursor-pointer`.
+- **Formulario:** diálogo con los campos Placas, Marca (Freightliner, International, Chevrolet), Modelo, No. Motor y NIV. Todos los textos se normalizan con `trim` y minúsculas; el NIV se limita a 17 caracteres.
+- **Eliminación:** el modal advierte que la unidad se elimina permanentemente del catálogo y que los viajes históricos de la bitácora se conservan mediante el snapshot de sus placas.
+- **Sincronización:** altas, ediciones y eliminaciones se reflejan en tiempo real mediante `useRealtimeCollection` sobre la tabla `unidades`.
+
+## 7. Criterios de Aceptación (BDD / Gherkin)
 
 ### Escenario 1: Registro exitoso de una unidad
 
@@ -444,8 +456,10 @@ Permite la gestión (alta, consulta, edición y eliminación) de las unidades qu
 - **Dado** que el usuario visualiza la tabla de unidades
 - **Cuando** hace clic en el ícono de "Eliminar" en una fila
 - **Entonces** el sistema muestra un modal pidiendo confirmación de la eliminación
+- **Y** advierte que la unidad se eliminará permanentemente del catálogo
 - **Y cuando** el usuario confirma la acción
-- **Entonces** el sistema elimina el registro de Supabase y actualiza la tabla
+- **Entonces** el sistema ejecuta un `DELETE` real del registro en Supabase y actualiza la tabla
+- **Y** los viajes históricos de la bitácora permanecen intactos gracias al snapshot de las placas de la unidad
 
 ---
 
