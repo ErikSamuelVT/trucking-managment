@@ -467,7 +467,7 @@ La sección Unidades hereda estrictamente la plantilla maestra definida en las r
 
 ## 1. Descripción
 
-Permite la gestión (alta, consulta, edición y eliminación) de los destinos que se encuentran activos en la flotilla.
+Permite la gestión (alta, consulta, edición y eliminación) de los destinos registrados en la flotilla.
 
 ## 2. Requisitos Funcionales (RF)
 
@@ -499,8 +499,8 @@ Permite la gestión (alta, consulta, edición y eliminación) de los destinos qu
 ## 5. Reglas de Validación y Negocio (RN)
 
 - **RN-4.1 (Tipos de Datos Permitidos):**
-  - El campo `destino` únicamente acepta letras de la `A` a la `Z` (mayúsculas y minúsculas) y acentos, no acepta caracteres especiales ni números.
-  - El campo `km` únicamente acepta valores numéricos.
+  - El campo `destino` únicamente acepta letras de la `A` a la `Z` (mayúsculas y minúsculas), acentos y espacios simples entre palabras; no acepta caracteres especiales ni números.
+  - El campo `km` únicamente acepta valores numéricos mayores que cero.
 - **RN-4.2 (Campos Obligatorios):**
   - Ninguno de los dos campos (`destino`, `km`) puede estar vacío.
 - **RN-4.3 (Limpieza de Espacios):**
@@ -510,7 +510,20 @@ Permite la gestión (alta, consulta, edición y eliminación) de los destinos qu
 - **RN-4.5 (Normalización en Base de Datos):**
   - Al hacer clic en el botón de registrar o guardar, la información del texto ingresado debe convertirse y almacenarse **en minúsculas** en la base de datos de Supabase.
 
-## 6. Criterios de Aceptación (BDD / Gherkin)
+## 6. Interfaz y comportamiento responsive
+
+La sección Destinos hereda estrictamente la plantilla maestra definida en las reglas UI-19 a UI-29 y en el Módulo 2 (Operadores):
+
+- **Controles superiores:** el título `Destinos` se oculta en pantallas menores a `md`. El botón principal `Nuevo Destino` y el campo de búsqueda se apilan en columna al 100% del ancho con espaciado uniforme; desde `md` el título queda a la izquierda y el botón a la derecha.
+- **Búsqueda:** input sin etiqueta flotante, a ancho completo, con el marcador de posición `Buscar por destino o kilómetros...`.
+- **Tabla:** columnas `N°`, `Destino`, `Km` y `Acciones`. Se muestra dentro de un contenedor con desplazamiento horizontal (`overflow-x-auto`), alto mínimo estable de `220px` y un máximo de 5 registros por página. La paginación inferior usa números limpios y el conteo `Mostrando X de Y`.
+- **Acciones de fila:** se conserva la plantilla de Operadores: íconos de editar (azul) y eliminar (rojo) con tooltip, hover tenue y `cursor-pointer`.
+- **Formulario:** diálogo con los campos Destino y Km. El destino se normaliza con `trim` y minúsculas, y admite letras, acentos y espacios simples entre palabras; los kilómetros deben ser mayores que cero.
+- **Columna derivada:** `requiere_tiros` existe en la base de datos como columna generada para la futura Bitácora, pero no se muestra en la tabla de Destinos.
+- **Eliminación:** el modal advierte que el destino se elimina permanentemente del catálogo y que los viajes históricos de la bitácora se conservan mediante el snapshot del destino y los tiros capturados.
+- **Sincronización:** altas, ediciones y eliminaciones se reflejan en tiempo real mediante `useRealtimeCollection` sobre la tabla `destinos`.
+
+## 7. Criterios de Aceptación (BDD / Gherkin)
 
 ### Escenario 1: Registro exitoso de un destino
 
@@ -545,9 +558,11 @@ Permite la gestión (alta, consulta, edición y eliminación) de los destinos qu
 - **Dado** que el usuario visualiza la tabla de destinos
 - **Cuando** hace clic en el ícono de "Eliminar" en una fila
 - **Entonces** el sistema despliega un modal pidiendo confirmación para la eliminación
+- **Y** advierte que el destino se eliminará permanentemente del catálogo
 - **Y cuando** el usuario confirma la acción
-- **Entonces** el sistema elimina el registro de Supabase
+- **Entonces** el sistema ejecuta un `DELETE` real del registro en Supabase
 - **Y** actualiza la tabla removiendo la fila correspondiente
+- **Y** los viajes históricos de la bitácora permanecen intactos gracias al snapshot del destino y de los tiros capturados
 
 ---
 

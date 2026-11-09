@@ -158,7 +158,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Destinos",
     href: "/destinos",
     icon: IconoDestinos,
-    disponible: false,
+    disponible: true,
   },
   {
     label: "Bitácora",
