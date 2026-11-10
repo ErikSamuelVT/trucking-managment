@@ -164,7 +164,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Bitácora",
     href: "/bitacora",
     icon: IconoBitacora,
-    disponible: false,
+    disponible: true,
   },
   {
     label: "Nómina",

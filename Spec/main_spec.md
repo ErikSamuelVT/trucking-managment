@@ -570,7 +570,7 @@ La sección Destinos hereda estrictamente la plantilla maestra definida en las r
 
 ## 1. Descripción
 
-Permite la gestión (alta, consulta, edición y eliminación) de los viajes realizados en la flotilla, vinculando la información registrada previamente en las secciones de Operadores, Unidades y Destinos.
+Permite la gestión (alta, consulta, edición y eliminación) de los viajes realizados en la flotilla, vinculando la información registrada previamente en las secciones de Operadores, Unidades y Destinos mediante snapshots históricos.
 
 ## 2. Requisitos Funcionales (RF)
 
@@ -593,9 +593,9 @@ Permite la gestión (alta, consulta, edición y eliminación) de los viajes real
 | `id`           | Auto-incrementable / UUID | Automático                       | Identificador único del viaje                                   |
 | `fecha`        | Date                      | Obligatorio                      | Fecha en que se realizó el viaje                                |
 | `operador_id`  | Text                      | Obligatorio                      | Snapshot histórico del operador (primer nombre y primer apellido); no depende de la tabla `operadores` |
-| `unidad_id`    | Text                      | Obligatorio                      | Identificador de la unidad (placas)                             |
-| `destino_id`   | Text                      | Obligatorio                      | Identificador del destino                                       |
-| `numero_tiros` | Numérico                  | Condicional / Oculto por defecto | Requerido solo si el destino es "Refrigerado" o "Refrigerado C" |
+| `unidad_id`    | Text                      | Obligatorio                      | Snapshot histórico de las placas de la unidad; no depende de la tabla `unidades` |
+| `destino_id`   | Text                      | Obligatorio                      | Snapshot histórico del nombre del destino; no depende de la tabla `destinos` |
+| `numero_tiros` | Numérico                  | Condicional / Oculto por defecto | Requerido solo si el destino contiene la palabra "refrigerado" (sin distinguir mayúsculas ni acentos) |
 
 ## 4. Contrato JSON de Ejemplo
 
@@ -618,13 +618,27 @@ Permite la gestión (alta, consulta, edición y eliminación) de los viajes real
   - Todos los campos visibles del formulario son obligatorios. El formulario no debe permitir el envío si alguna opción permanece en `"Seleccionar opción"` o si la fecha no ha sido seleccionada.
 - **RN-5.3 (Visibilidad Dinámica de Número de Tiros):**
   - El campo `Número de tiros` debe iniciar oculto (`hidden`).
-  - Debe mostrarse únicamente cuando la opción seleccionada en el campo Destino corresponda a `"Refrigerado"` o `"Refrigerado C"`.
-  - Si se cambia el destino a uno distinto de estos dos, el campo debe volver a ocultarse y limpiar su valor.
-- **RN-5.4 (Independencia histórica del operador):**
-  - La bitácora guarda un snapshot del operador (`operador_id` de texto con primer nombre y primer apellido) y no mantiene una llave foránea hacia `operadores`.
-  - Si el operador se elimina del catálogo, sus viajes históricos permanecen consultables y se incluyen en nóminas y estadísticas.
+  - Debe mostrarse únicamente cuando el destino seleccionado contenga la palabra `"refrigerado"` en cualquier posición, sin distinguir mayúsculas, minúsculas ni acentos (por ejemplo: `"Celaya Refrigerado"`, `"Refrigerado Tlapa"` o `"Refrigerado C"`).
+  - Si se cambia el destino a uno que no contenga `"refrigerado"`, el campo debe volver a ocultarse y limpiar su valor, enviándose como `null`.
+- **RN-5.4 (Independencia histórica de los catálogos):**
+  - La bitácora guarda snapshots de texto: `operador_id` con `"nombre apellido_paterno"`, `unidad_id` con las placas y `destino_id` con el nombre del destino.
+  - No mantiene llaves foráneas hacia `operadores`, `unidades` ni `destinos`.
+  - Si cualquiera de esos registros se elimina físicamente del catálogo, los viajes históricos permanecen consultables y se incluyen en nóminas y estadísticas.
 
-## 6. Criterios de Aceptación (BDD / Gherkin)
+## 6. Interfaz y comportamiento responsive
+
+La sección Bitácora hereda estrictamente la plantilla maestra definida en las reglas UI-19 a UI-29 y en el Módulo 2 (Operadores):
+
+- **Controles superiores:** el título `Bitácora` se oculta en pantallas menores a `md`. El botón principal `Nuevo Viaje` y el campo de búsqueda se apilan en columna al 100% del ancho con espaciado uniforme; desde `md` el título queda a la izquierda y el botón a la derecha.
+- **Búsqueda:** input sin etiqueta flotante, a ancho completo, con el marcador de posición `Buscar por fecha, operador, unidad o destino...`.
+- **Tabla:** columnas `N°`, `Fecha`, `Operador`, `Unidad`, `Destino`, `Tiros` y `Acciones`. Se muestra dentro de un contenedor con desplazamiento horizontal (`overflow-x-auto`), alto mínimo estable de `220px` y un máximo de 5 registros por página. La columna `Tiros` siempre está visible y muestra `—` cuando el viaje no tiene tiros. La paginación inferior usa números limpios y el conteo `Mostrando X de Y`.
+- **Orden:** los viajes se muestran por fecha descendente y, en empate, por creación más reciente.
+- **Acciones de fila:** se conserva la plantilla de Operadores: íconos de editar (azul) y eliminar (rojo) con tooltip, hover tenue y `cursor-pointer`.
+- **Formulario:** diálogo con Fecha, Operador, Unidad, Destino y el campo condicional Número de tiros. Los tres selects muestran `"Seleccionar opción"` como primera opción y se alimentan de los catálogos registrados.
+- **Snapshots históricos en edición:** si el operador, la unidad o el destino de un viaje ya no existe en su catálogo, el formulario conserva el valor histórico como opción para no perder el dato.
+- **Sincronización:** altas, ediciones y eliminaciones se reflejan en tiempo real mediante `useRealtimeCollection` sobre la tabla `bitacora_viajes`.
+
+## 7. Criterios de Aceptación (BDD / Gherkin)
 
 ### Escenario 1: Registro exitoso de un viaje estándar
 
@@ -639,12 +653,12 @@ Permite la gestión (alta, consulta, edición y eliminación) de los viajes real
 - **Y** guarda el viaje en Supabase
 - **Y** actualiza la tabla de bitácora mostrando el nuevo registro y notifica al usuario que el registro fue exitoso
 
-### Escenario 2: Registro de viaje con destino Refrigerado o Refrigerado C
+### Escenario 2: Registro de viaje con destino refrigerado
 
 - **Dado** que el usuario está completando el formulario de registro de viaje
-- **Y** en el campo Destino selecciona `"Refrigerado"` o `"Refrigerado C"`
+- **Y** en el campo Destino selecciona uno que contiene la palabra `"refrigerado"` (por ejemplo `"Refrigerado"`, `"Refrigerado C"` o `"Celaya Refrigerado"`)
 - **Entonces** el sistema hace visible el campo "Número de tiros"
-- **Y cuando** ingresa un valor numérico en dicho campo y presiona "Registrar"
+- **Y cuando** ingresa un valor numérico mayor que cero en dicho campo y presiona "Registrar"
 - **Entonces** el sistema guarda el registro incluyendo el número de tiros y actualiza la tabla y notifica al usuario que el registro fue exitoso
 
 ### Escenario 3: Intento de registro con campos sin seleccionar
@@ -659,7 +673,7 @@ Permite la gestión (alta, consulta, edición y eliminación) de los viajes real
 - **Dado** que el usuario visualiza la tabla de bitácora de viajes
 - **Cuando** hace clic en el ícono de "Editar" en una fila de la tabla
 - **Entonces** el formulario carga automáticamente todos los datos del viaje seleccionado
-- **Y si** el destino es "Refrigerado" o "Refrigerado C", muestra el campo "Número de tiros" con su valor actual
+- **Y si** el destino contiene la palabra `"refrigerado"`, muestra el campo "Número de tiros" con su valor actual
 - **Y cuando** modifica la información deseada y presiona "Guardar"
 - **Entonces** el sistema actualiza el registro en Supabase y refleja los cambios en la tabla
 

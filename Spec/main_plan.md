@@ -157,15 +157,16 @@ trucking-managment/
 | `0003_operadores.sql` | catálogo de operadores (la `0012` retira `activo`) | — |
 | `0004_unidades.sql` | catálogo con borrado físico y único global por placas | — |
 | `0005_destinos.sql` | catálogo con borrado físico, único global y `requiere_tiros` generado | — |
-| `0006_bitacora_viajes.sql` | snapshots de texto de operador, unidad y destino | 0003–0005 |
+| `0006_bitacora_viajes.sql` | tabla con snapshots, índices y CHECK condicional de tiros | 0003–0005 |
 | `0007_estadisticas_snapshot.sql` | fila única con `payload jsonb` | 0006 (semántica) |
-| `0008_indexes.sql` | fecha e índices únicos globales de catálogos | 0003–0006 |
+| `0008_indexes.sql` | índices complementarios de estadísticas | 0006–0007 |
 | `0009_functions.sql` | normalización, validaciones, recálculo, nómina | 0006–0007 |
 | `0010_rls_policies.sql` | políticas de acceso | todas |
 | `0011_realtime.sql` | publicación de las 5 tablas operativas | todas |
 | `0012_operadores_delete_real.sql` | elimina `activo` de operadores y habilita el `DELETE` real | 0003 |
 | `0013_unidades_realtime.sql` | publica `unidades` en Realtime tras crear la tabla | 0004, 0011 |
 | `0014_destinos_realtime.sql` | publica `destinos` en Realtime tras crear la tabla | 0005, 0011 |
+| `0015_bitacora_realtime.sql` | publica `bitacora_viajes` en Realtime tras crear la tabla | 0006, 0011 |
 
 Los catálogos (`operadores`, `unidades`, `destinos`) no dependen entre sí y pueden crearse en paralelo. `bitacora_viajes` guarda snapshots de texto de los tres catálogos y no tiene llaves foráneas hacia ellos; `cuentas` es independiente de todo el resto del modelo.
 
@@ -248,9 +249,10 @@ estadisticas_snapshot    (agregado global, sin FK)
 - `niv` con exactamente 17 caracteres alfanuméricos.
 - `modelo` entre 1950 y 2100; `km > 0`.
 - `marca` restringida a `freightliner`, `international` y `chevrolet`.
-- Trigger que valida `numero_tiros` contra `destinos.requiere_tiros`:
-  - si el destino requiere tiros → obligatorio y mayor a 0;
-  - si no los requiere → debe ser `NULL`.
+- `CHECK` de `numero_tiros` contra el snapshot del destino:
+  - si `destino_id` contiene "refrigerado" (sin distinguir mayúsculas ni acentos) → obligatorio y mayor a 0;
+  - si no lo contiene → debe ser `NULL`.
+- La misma regla se valida en Zod/Server Actions usando el destino seleccionado al momento de capturar o editar el viaje.
 - Trigger compartido `set_actualizado_en()`.
 - Triggers de sentencia que marcan el snapshot como obsoleto ante cambios en bitácora o catálogos.
 - **Borrado de operadores, unidades y destinos:** la aplicación ejecuta `DELETE` físico. La bitácora no tiene FK hacia los catálogos; guarda snapshots de texto (`operador_id = "nombre apellido_paterno"`, `unidad_id = "placas"` y `destino_id = "destino"`) y el `numero_tiros` ya capturado, por lo que los viajes históricos permanecen intactos.
@@ -411,7 +413,7 @@ Total de viajes en el periodo: 3
 | **0. Fundaciones** | Proyecto Next.js + TypeScript + Tailwind, componentes base propios, estructura de carpetas, Supabase local/cloud, tipos generados, CI | — | Compila; lint y typecheck limpios; conexión a Supabase verificada |
 | **1. Autenticación** | Tabla `cuentas`, hash bcrypt, registro, login, recuperación sin correo, JWT + cookie, middleware, RLS, `/api/sesion/token` | 0 | Escenarios 1–4 del Módulo 1 + recuperación con usuario inexistente |
 | **2. Catálogos** | Operadores, Unidades y Destinos: CRUD, validaciones, borrado real de los tres catálogos, Realtime, responsive | 1 | Gherkin de Módulos 2, 3 y 4 |
-| **3. Bitácora** | CRUD, selects dinámicos, campo condicional de tiros, integridad referencial, Realtime | 2 | Escenarios 1–5 del Módulo 5 |
+| **3. Bitácora** | CRUD, selects dinámicos, campo condicional de tiros, snapshots históricos, Realtime | 2 | Escenarios 1–5 del Módulo 5 |
 | **4. Nóminas** | RPC de resumen, plantilla de texto, copiado, validación de fechas | 3 | Escenarios 1–4 del Módulo 6 |
 | **5. Estadísticas** | Snapshot, recálculo, KPIs, cuatro tablas, porcentajes, paginación, Realtime | 3 | Escenarios 1–2 del Módulo 7 |
 | **6. Cierre** | E2E Playwright, pruebas negativas de RLS, accesibilidad, despliegue | 1–5 | Suite completa en verde |
